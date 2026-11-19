@@ -5662,7 +5662,6 @@
                         const modelKey = m ? m[1] : '';
                         const entry = Data[modelKey];
                         const imgSrc = (entry && entry.images && entry.images[0]) || getRepresentativeImageForDetails(child, title);
-                        const count = entry && entry.images ? entry.images.length : 0;
                         const safeKey = modelKey.replace(/'/g, "\\'");
                         return `
                             <div class="cat-card" onclick="openSeriesFromDashboard('${safeKey}')">
@@ -5671,15 +5670,12 @@
                                 </div>
                                 <div class="cat-title-bar">
                                     <h4>${title}</h4>
-                                    <span class="cat-subtitle">${count} mã / hình ảnh kỹ thuật</span>
                                 </div>
                             </div>
                         `;
                     } else {
                         // Thẻ này là Hãng hoặc Phân loại (ví dụ: Delta, Siemens, Keyence...)
                         const imgSrc = getRepresentativeImageForDetails(child, title);
-                        const stats = countStatsInDetails(child);
-                        const subtitleText = stats.seriesCount > 0 ? `${stats.seriesCount} dòng series (${stats.imagesCount} ảnh)` : 'Khám phá chi tiết';
                         if (!child.id) child.id = 't_node_' + Math.random().toString(36).substr(2, 9);
                         return `
                             <div class="cat-card" onclick="drillDownDashboardById('${child.id}')">
@@ -5688,7 +5684,6 @@
                                 </div>
                                 <div class="cat-title-bar">
                                     <h4>${title}</h4>
-                                    <span class="cat-subtitle">${subtitleText}</span>
                                 </div>
                             </div>
                         `;
