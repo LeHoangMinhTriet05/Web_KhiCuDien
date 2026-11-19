@@ -7,3 +7,5 @@ Allow: /
 
 User-agent: Bingbot
 Allow: /
+
+Sitemap: https://lehoangminhtriet05.github.io/Web_KhiCuDien/sitemap.xml
