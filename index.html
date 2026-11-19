@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">  
     <head> 
         <meta charset="UTF-8"> 
@@ -5127,7 +5127,7 @@
                 <!-- [MỚI THÊM] Thanh công cụ phía trên: Breadcrumb + Chuyển chế độ xem nhanh -->
                 <div class="content-toolbar">
                     <div class="breadcrumb-bar" id="breadcrumbBar">
-                        <span class="bc-home" onclick="showWelcomeDashboard()">Trang chủ</span>
+                        <span class="bc-home" onclick="navigateBreadcrumbHome()" title="Về giao diện Trang chủ và thu gọn cây thư mục">Trang chủ</span>
                         <span class="bc-sep">›</span>
                         <span id="breadcrumbText">Thiết bị điện</span>
                     </div>
@@ -5357,7 +5357,10 @@
                 }
             }
 
-            // [MỚI THÊM - MỤC 2] Hàm tự động dò nhánh cây thư mục để tạo đường dẫn Breadcrumb
+            // [MỚI THÊM - MỤC 2] Lưu danh sách các thẻ <summary> tương ứng với từng cấp trên thanh Breadcrumb
+            let currentBreadcrumbSummaries = [];
+
+            // [MỚI THÊM - MỤC 2] Hàm tự động dò nhánh cây thư mục để tạo đường dẫn Breadcrumb có thể click từng cấp
             function updateBreadcrumb(model) {
                 const bcTextEl = document.getElementById('breadcrumbText');
                 if (!bcTextEl) return;
@@ -5368,24 +5371,60 @@
                     return onclickAttr.includes(`'${model}'`);
                 });
 
+                currentBreadcrumbSummaries = [];
+
                 if (targetLink) {
-                    const pathParts = [];
+                    const pathNodes = [];
                     let curr = targetLink.parentElement;
                     while (curr && !curr.classList.contains('sidebar')) {
                         if (curr.tagName === 'DETAILS') {
                             const sum = curr.querySelector(':scope > summary');
                             if (sum && sum.textContent.trim() !== 'KHÍ CỤ ĐIỆN') {
-                                pathParts.unshift(sum.textContent.trim());
+                                pathNodes.unshift(sum);
                             }
                         }
                         curr = curr.parentElement;
                     }
-                    bcTextEl.innerHTML = pathParts.map((p, i) => 
-                        i === pathParts.length - 1 ? `<strong class="bc-current">${p}</strong>` : `<span>${p}</span>`
-                    ).join(' <span class="bc-sep">›</span> ');
+                    currentBreadcrumbSummaries = pathNodes;
+                    bcTextEl.innerHTML = pathNodes.map((sumEl, i) => {
+                        const label = sumEl.textContent.trim();
+                        const isLast = (i === pathNodes.length - 1);
+                        const cls = isLast ? 'bc-item bc-current' : 'bc-item';
+                        return `<span class="${cls}" onclick="navigateBreadcrumb(${i})" title="Mở cây thư mục tại: ${label}">${label}</span>`;
+                    }).join(' <span class="bc-sep">›</span> ');
                 } else {
                     bcTextEl.innerHTML = `<strong class="bc-current">${model}</strong>`;
                 }
+            }
+
+            // Khi click vào "Trang chủ" trên thanh Breadcrumb: về giao diện Dashboard và thu gọn các nhánh con
+            function navigateBreadcrumbHome() {
+                showWelcomeDashboard();
+                collapseAllTree();
+            }
+
+            // Khi click vào bất kỳ cấp nào trên thanh Breadcrumb: về giao diện Dashboard và mở cây thư mục tới đúng cấp vừa click
+            function navigateBreadcrumb(idx) {
+                const targetSummary = currentBreadcrumbSummaries[idx];
+                showWelcomeDashboard();
+                if (!targetSummary) return;
+
+                // Đóng tất cả các nhánh khác và các nhánh con sâu hơn cấp vừa click
+                allDetails.forEach(d => d.removeAttribute('open'));
+
+                // Chỉ mở từ gốc "KHÍ CỤ ĐIỆN" đi xuống tới đúng thẻ <details> của mục vừa click
+                let curr = targetSummary.parentElement;
+                while (curr && !curr.classList.contains('sidebar')) {
+                    if (curr.tagName === 'DETAILS') {
+                        curr.setAttribute('open', '');
+                    }
+                    curr = curr.parentElement;
+                }
+
+                // Bỏ trạng thái làm mờ để toàn bộ nhánh đang mở hiển thị rõ nét 100% và cuộn tới đúng mục đó
+                document.body.classList.remove('has-active');
+                items.forEach(el => el.classList.remove('active-item'));
+                targetSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
 
             function changeSlide(n) {
@@ -6337,6 +6376,18 @@
         .bc-sep {
             color: #94a3b8;
             font-weight: bold;
+        }
+        .bc-item {
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 6px;
+            color: #475569;
+            font-weight: 500;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+        .bc-item:hover {
+            background: #ecfdf5;
+            color: #059669;
         }
         .bc-current {
             color: #0f172a;
