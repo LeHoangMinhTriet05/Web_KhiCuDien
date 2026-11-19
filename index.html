@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">  
     <head> 
         <meta charset="UTF-8"> 
@@ -45,7 +45,7 @@
                  [MỚI THÊM - MỤC 1 & MỤC 2] HEADER SIDEBAR & THANH TÌM KIẾM NHANH TOÀN CỤC
                  ========================================================================= -->
             <div class="sidebar-header">
-                <div class="brand-logo" onclick="showWelcomeDashboard()" title="Quay về Trang chủ Tổng quan">
+                <div class="brand-logo" onclick="resetToRootDashboard(); showWelcomeDashboard();" title="Quay về Trang chủ Tổng quan">
                     <div class="brand-text">
                         <h1>INDUSTRIAL CATALOG</h1>
                         <p>Khí Cụ Điện & Tự Động Hóa</p>
@@ -68,7 +68,7 @@
 
                 <!-- Thanh nút tiện ích nhanh trên Sidebar -->
                 <div class="sidebar-quick-actions">
-                    <button type="button" class="quick-btn" onclick="showWelcomeDashboard()">Trang chủ</button>
+                    <button type="button" class="quick-btn" onclick="resetToRootDashboard(); showWelcomeDashboard();">Trang chủ</button>
                     <button type="button" class="quick-btn" onclick="collapseAllTree()">Thu gọn cây</button>
                 </div>
             </div>
@@ -5006,10 +5006,21 @@
                     <p>Tra cứu trực quan hình ảnh cấu tạo thực tế và bảng thông số kỹ thuật chi tiết cho từng mã thiết bị công nghiệp. Chọn danh mục bên dưới hoặc sử dụng ô tìm kiếm nhanh ở cột trái.</p>
                 </div>
 
-                <!-- Lưới truy cập nhanh 17 danh mục thiết bị (Giao diện thẻ hình ảnh lớn + thanh tiêu đề in hoa bên dưới) -->
-                <div class="dashboard-section-title">
-                    <span>TRUY CẬP NHANH THEO DANH MỤC THIẾT BỊ</span>
-                    <small>Bấm vào thẻ bất kỳ để bung nhanh nhánh thư mục tương ứng</small>
+                <!-- Thanh điều hướng lùi / Breadcrumb cho màn hình Dashboard -->
+                <div class="dashboard-nav-bar" id="dashboardNavBar" style="display: none;">
+                    <button type="button" class="dash-back-btn" onclick="drillUpDashboard()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: middle;">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        Quay lại
+                    </button>
+                    <div class="dash-breadcrumb" id="dashBreadcrumb"></div>
+                </div>
+
+                <!-- Lưới truy cập nhanh (Động: Tự đổi theo Danh mục -> Hãng -> Dòng Series) -->
+                <div class="dashboard-section-title" id="dashboardSectionHeader">
+                    <span id="dashboardSectionTitleText">TRUY CẬP NHANH THEO DANH MỤC THIẾT BỊ</span>
+                    <small id="dashboardSectionHint">Bấm vào thẻ bất kỳ để khám phá chi tiết</small>
                 </div>
                 <div class="category-cards-grid" id="dashboardCategoryGrid">
                     <div class="cat-card" onclick="openCategoryFromDashboard('PLC')">
@@ -5127,6 +5138,12 @@
                 <!-- [MỚI THÊM] Thanh công cụ phía trên: Breadcrumb + Chuyển chế độ xem nhanh -->
                 <div class="content-toolbar">
                     <div class="breadcrumb-bar" id="breadcrumbBar">
+                        <button type="button" class="dash-back-btn mini-back-btn" onclick="backToDashboardCatalog()" title="Quay lại danh sách thẻ trong danh mục">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 3px; vertical-align: middle;">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            Danh mục
+                        </button>
                         <span class="bc-home" onclick="navigateBreadcrumbHome()" title="Về giao diện Trang chủ và thu gọn cây thư mục">Trang chủ</span>
                         <span class="bc-sep">›</span>
                         <span id="breadcrumbText">Thiết bị điện</span>
@@ -5399,32 +5416,42 @@
 
             // Khi click vào "Trang chủ" trên thanh Breadcrumb: về giao diện Dashboard và thu gọn các nhánh con
             function navigateBreadcrumbHome() {
+                resetToRootDashboard();
                 showWelcomeDashboard();
                 collapseAllTree();
             }
 
-            // Khi click vào bất kỳ cấp nào trên thanh Breadcrumb: về giao diện Dashboard và mở cây thư mục tới đúng cấp vừa click
+            // Khi click vào bất kỳ cấp nào trên thanh Breadcrumb:
             function navigateBreadcrumb(idx) {
-                const targetSummary = currentBreadcrumbSummaries[idx];
-                showWelcomeDashboard();
-                if (!targetSummary) return;
-
-                // Đóng tất cả các nhánh khác và các nhánh con sâu hơn cấp vừa click
-                allDetails.forEach(d => d.removeAttribute('open'));
-
-                // Chỉ mở từ gốc "KHÍ CỤ ĐIỆN" đi xuống tới đúng thẻ <details> của mục vừa click
-                let curr = targetSummary.parentElement;
-                while (curr && !curr.classList.contains('sidebar')) {
-                    if (curr.tagName === 'DETAILS') {
-                        curr.setAttribute('open', '');
-                    }
-                    curr = curr.parentElement;
+                if (idx === 0) {
+                    navigateBreadcrumbHome();
+                    return;
                 }
+                const targetSummary = currentBreadcrumbSummaries[idx];
+                if (!targetSummary) return;
+                const targetDetails = targetSummary.parentElement;
+                if (targetDetails && targetDetails.tagName === 'DETAILS') {
+                    const directLinks = targetDetails.querySelectorAll(':scope > ul > li > a');
+                    if (directLinks.length > 0) {
+                        const m = directLinks[0].getAttribute('onclick').match(/show_info\('([^']+)'/);
+                        if (m) show_info(m[1], 'thongso');
+                    } else {
+                        drillDownToDetails(targetDetails, true);
+                    }
+                }
+            }
 
-                // Bỏ trạng thái làm mờ để toàn bộ nhánh đang mở hiển thị rõ nét 100% và cuộn tới đúng mục đó
-                document.body.classList.remove('has-active');
-                items.forEach(el => el.classList.remove('active-item'));
-                targetSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Khi click nút "‹ Danh mục" ở thanh toolbar của màn hình chi tiết:
+            function backToDashboardCatalog() {
+                if (currentBreadcrumbSummaries.length >= 2) {
+                    const parentSummary = currentBreadcrumbSummaries[currentBreadcrumbSummaries.length - 2];
+                    if (parentSummary && parentSummary.parentElement) {
+                        drillDownToDetails(parentSummary.parentElement, true);
+                        return;
+                    }
+                }
+                resetToRootDashboard();
+                showWelcomeDashboard();
             }
 
             function changeSlide(n) {
@@ -5488,15 +5515,67 @@
             }
 
             // =========================================================================
-            // [MỚI THÊM - MỤC 3] ĐIỀU KHIỂN MÀN HÌNH TRANG CHỦ DASHBOARD & CÂY THƯ MỤC
+            // [MỚI THÊM] ĐIỀU KHIỂN TRUY CẬP NHANH ĐA CẤP (DRILL-DOWN CATALOG)
+            // Cho phép click từ 17 Danh mục -> Danh sách Hãng -> Danh sách Series -> Chi tiết
             // =========================================================================
+            let initialRootGridHTML = '';
+            let drillDownHistory = [];
+
+            const ROOT_CATEGORY_IMAGES = {
+                'PLC': 'Picture/PLC/Siemens/S7-1200/CPU (1211C, 1212C, 1214C, 1215C...)/3RK7243-2AA30-0XB0.jpg',
+                'HMI': 'Picture/HMI/Delta/DOP-100/DOP-103BQ 4.3inch.jpg',
+                'Biến tần': 'Picture/BienTan/ABB/ACS580 Series/ACS580-01-018A-4.jpg',
+                'Servo': 'Picture/Servo/Mitsubishi/Dong_Co/HA Series/HA-LP15K24.jpg',
+                'MCB': 'Picture/MCB/Schneider/1P/A9F74106 1P 6A.jpg',
+                'MCCB': 'Picture/MCCB/Mitsubishi/3P/Mitsubishi-MCCB 3P 100A.jpg',
+                'RCCB': 'Picture/RCCB/Schneider/Acti9 iID & iIDK 2P (1P+N)/30mA/A9R11291 2P 100A 30mA.jpg',
+                'RCBO': 'Picture/RCBO/Schneider/Acti9/30mA/A9D31606 1P+N 6A 30mA.jpg',
+                'Contactor': 'Picture/Contactor/Schneider/EasyPact TVS (LC1E)/LC1E50F7 50A 110V.jpg',
+                'Relay trung gian': 'Picture/Relay-TrungGian/Omron/G2R Series (5-8 Chan Dep Mong)/G2R-1-S AC110 (5 chân dẹp).jpg',
+                'Relay nhiệt': 'Picture/Relay-Nhiet/Mitsubishi/TH-N Series (Lắp Contactor S-N)/TH-N12 - TH-N20/TH-N120 (34-50A).jpg',
+                'Timer': 'Picture/Timer/Omron/DH48S Series (Digital Key-Set)/DH48S-1Z.jpg',
+                'Nút nhấn (Push)': 'Picture/Nut_Nhan/Nut_Nhan_Tu_Giu/Schneider/XA2 Series Ø22/XA2EH011-22MM.jpg',
+                'Công tắc (Selector)': 'Picture/CongTac/Schneider/Ø22/Schneider-Switch 22MM.jpg',
+                'Cảm biến tiệm cận': 'Picture/CamBienTiemCan/Autonics/PR Series/2MM/PR08-2DN 2MM.jpg',
+                'Cảm biến lưu lượng': 'Picture/CamBienLuuLuong/Keyence/FD Series/FD-G125.jpg',
+                'Encoder': 'Picture/Encoder/Omron/E6B2-C Series/E6B2-CWZ6C (NPN)/E6B2-CWZ6C (1000PR).jpg'
+            };
+
+            function getRepresentativeImageForDetails(detailsEl, summaryName) {
+                if (summaryName && ROOT_CATEGORY_IMAGES[summaryName]) {
+                    return ROOT_CATEGORY_IMAGES[summaryName];
+                }
+                const links = detailsEl.querySelectorAll('li a[onclick*="show_info"]');
+                for (let i = 0; i < links.length; i++) {
+                    const match = (links[i].getAttribute('onclick') || '').match(/show_info\('([^']+)'/);
+                    if (match && Data[match[1]] && Data[match[1]].images && Data[match[1]].images.length > 0) {
+                        return Data[match[1]].images[0];
+                    }
+                }
+                return 'Picture/PLC/Siemens/S7-1200/CPU (1211C, 1212C, 1214C, 1215C...)/3RK7243-2AA30-0XB0.jpg';
+            }
+
+            function countStatsInDetails(detailsEl) {
+                const seenKeys = new Set();
+                let imagesCount = 0;
+                const links = detailsEl.querySelectorAll('li a[onclick*="show_info"]');
+                links.forEach(a => {
+                    const match = (a.getAttribute('onclick') || '').match(/show_info\('([^']+)'/);
+                    if (match && !seenKeys.has(match[1])) {
+                        seenKeys.add(match[1]);
+                        if (Data[match[1]] && Data[match[1]].images) {
+                            imagesCount += Data[match[1]].images.length;
+                        }
+                    }
+                });
+                return { seriesCount: seenKeys.size, imagesCount: imagesCount };
+            }
+
             function showWelcomeDashboard() {
                 const dashboardEl = document.getElementById('welcomeDashboard');
                 const noiDungEl = document.getElementById('noiDung');
                 if (noiDungEl) noiDungEl.style.display = 'none';
                 if (dashboardEl) dashboardEl.style.display = 'flex';
-                document.body.classList.remove('has-active');
-                items.forEach(el => el.classList.remove('active-item'));
             }
 
             function collapseAllTree() {
@@ -5509,28 +5588,201 @@
                 items.forEach(el => el.classList.remove('active-item'));
             }
 
-            // Khi bấm vào 1 trong 17 thẻ danh mục trên màn hình Dashboard, tự động mở nhánh đó ở cột trái
-            function openCategoryFromDashboard(summaryName) {
-                const targetSummary = Array.from(document.querySelectorAll('.sidebar summary')).find(
-                    s => s.textContent.trim().toLowerCase() === summaryName.toLowerCase()
-                );
-                if (!targetSummary) return;
+            function resetToRootDashboard() {
+                drillDownHistory = [];
+                const navBar = document.getElementById('dashboardNavBar');
+                if (navBar) navBar.style.display = 'none';
+                const sectionTitle = document.getElementById('dashboardSectionTitleText');
+                const sectionHint = document.getElementById('dashboardSectionHint');
+                if (sectionTitle) sectionTitle.textContent = 'TRUY CẬP NHANH THEO DANH MỤC THIẾT BỊ';
+                if (sectionHint) sectionHint.textContent = 'Bấm vào thẻ bất kỳ để khám phá chi tiết';
+                const grid = document.getElementById('dashboardCategoryGrid');
+                if (grid && initialRootGridHTML) {
+                    grid.innerHTML = initialRootGridHTML;
+                }
+                document.body.classList.remove('has-active');
+                items.forEach(el => el.classList.remove('active-item'));
+            }
 
-                // Mở tất cả các thẻ details cha của danh mục đó
-                let curr = targetSummary.parentElement;
-                allDetails.forEach(d => d.removeAttribute('open'));
-                while (curr && curr.tagName !== 'BODY') {
-                    if (curr.tagName === 'DETAILS') {
-                        curr.setAttribute('open', '');
+            function drillDownToDetails(detailsEl, pushHistory = true) {
+                if (!detailsEl) return;
+                showWelcomeDashboard();
+
+                const summaryText = (detailsEl.querySelector(':scope > summary') || {}).textContent || '';
+                const cleanTitle = summaryText.trim();
+
+                if (pushHistory) {
+                    if (drillDownHistory.length === 0 || drillDownHistory[drillDownHistory.length - 1].detailsEl !== detailsEl) {
+                        drillDownHistory.push({ title: cleanTitle, detailsEl: detailsEl });
                     }
-                    curr = curr.parentElement;
                 }
 
-                // Đánh dấu nổi bật và cuộn tới vị trí danh mục trên Sidebar
+                // Mở cây thư mục bên trái đồng bộ đúng nhánh:
+                allDetails.forEach(d => {
+                    if (!detailsEl.contains(d) && !d.contains(detailsEl)) {
+                        d.removeAttribute('open');
+                    }
+                });
+                let curr = detailsEl;
+                while (curr && curr.tagName !== 'BODY') {
+                    if (curr.tagName === 'DETAILS') curr.setAttribute('open', '');
+                    curr = curr.parentElement;
+                }
+                detailsEl.setAttribute('open', '');
+
                 items.forEach(el => el.classList.remove('active-item'));
-                targetSummary.classList.add('active-item');
+                const summaryEl = detailsEl.querySelector(':scope > summary');
+                if (summaryEl) {
+                    summaryEl.classList.add('active-item');
+                    summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 document.body.classList.add('has-active');
-                targetSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Lấy các thẻ con trực tiếp của nhánh này
+                const childDetails = Array.from(detailsEl.querySelectorAll(':scope > ul > li > details'));
+                const grid = document.getElementById('dashboardCategoryGrid');
+
+                if (childDetails.length === 0) {
+                    const directLink = detailsEl.querySelector('li a[onclick*="show_info"]');
+                    if (directLink) {
+                        const m = directLink.getAttribute('onclick').match(/show_info\('([^']+)'/);
+                        if (m) { openSeriesFromDashboard(m[1]); return; }
+                    }
+                }
+
+                const isSeriesList = childDetails.some(c => c.querySelectorAll(':scope > ul > li > a').length > 0);
+
+                const cardsHtml = childDetails.map((child, idx) => {
+                    const title = (child.querySelector(':scope > summary') || {}).textContent.trim();
+                    const directLinks = child.querySelectorAll(':scope > ul > li > a');
+
+                    if (directLinks.length > 0) {
+                        // Thẻ này là dòng Series!
+                        const m = directLinks[0].getAttribute('onclick').match(/show_info\('([^']+)'/);
+                        const modelKey = m ? m[1] : '';
+                        const entry = Data[modelKey];
+                        const imgSrc = (entry && entry.images && entry.images[0]) || getRepresentativeImageForDetails(child, title);
+                        const count = entry && entry.images ? entry.images.length : 0;
+                        const safeKey = modelKey.replace(/'/g, "\\'");
+                        return `
+                            <div class="cat-card" onclick="openSeriesFromDashboard('${safeKey}')">
+                                <div class="cat-img-box">
+                                    <img src="${imgSrc}" alt="${title}" loading="lazy">
+                                </div>
+                                <div class="cat-title-bar">
+                                    <h4>${title}</h4>
+                                    <span class="cat-subtitle">${count} mã / hình ảnh kỹ thuật</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // Thẻ này là Hãng hoặc Phân loại (ví dụ: Delta, Siemens, Keyence...)
+                        const imgSrc = getRepresentativeImageForDetails(child, title);
+                        const stats = countStatsInDetails(child);
+                        const subtitleText = stats.seriesCount > 0 ? `${stats.seriesCount} dòng series (${stats.imagesCount} ảnh)` : 'Khám phá chi tiết';
+                        if (!child.id) child.id = 't_node_' + Math.random().toString(36).substr(2, 9);
+                        return `
+                            <div class="cat-card" onclick="drillDownDashboardById('${child.id}')">
+                                <div class="cat-img-box">
+                                    <img src="${imgSrc}" alt="${title}" loading="lazy">
+                                </div>
+                                <div class="cat-title-bar">
+                                    <h4>${title}</h4>
+                                    <span class="cat-subtitle">${subtitleText}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('');
+
+                if (grid) grid.innerHTML = cardsHtml;
+
+                // Cập nhật Breadcrumb & Nút quay lại trên Dashboard
+                const navBar = document.getElementById('dashboardNavBar');
+                const navBreadcrumb = document.getElementById('dashBreadcrumb');
+                const sectionTitle = document.getElementById('dashboardSectionTitleText');
+                const sectionHint = document.getElementById('dashboardSectionHint');
+
+                if (navBar) navBar.style.display = 'flex';
+                if (navBreadcrumb) {
+                    let bcHtml = `<span class="dash-crumb-link" onclick="resetToRootDashboard()">Trang chủ</span>`;
+                    drillDownHistory.forEach((h, i) => {
+                        bcHtml += ` <span class="dash-crumb-sep">›</span> `;
+                        if (i === drillDownHistory.length - 1) {
+                            bcHtml += `<span class="dash-crumb-current">${h.title}</span>`;
+                        } else {
+                            bcHtml += `<span class="dash-crumb-link" onclick="jumpToHistoryIndex(${i})">${h.title}</span>`;
+                        }
+                    });
+                    navBreadcrumb.innerHTML = bcHtml;
+                }
+
+                if (sectionTitle) {
+                    sectionTitle.textContent = isSeriesList
+                        ? `DANH SÁCH DÒNG SẢN PHẨM (SERIES): ${cleanTitle.toUpperCase()}`
+                        : `DANH SÁCH HÃNG SẢN XUẤT: ${cleanTitle.toUpperCase()}`;
+                }
+                if (sectionHint) {
+                    sectionHint.textContent = isSeriesList
+                        ? 'Bấm vào một Series cụ thể để mở hình ảnh cấu tạo, thông số kỹ thuật và phóng to'
+                        : 'Bấm vào một hãng để xem các dòng Series tương ứng';
+                }
+            }
+
+            function drillDownDashboardById(nodeId) {
+                const targetEl = document.getElementById(nodeId);
+                if (targetEl) drillDownToDetails(targetEl, true);
+            }
+
+            function drillUpDashboard() {
+                if (drillDownHistory.length <= 1) {
+                    resetToRootDashboard();
+                    return;
+                }
+                drillDownHistory.pop();
+                const prev = drillDownHistory[drillDownHistory.length - 1];
+                drillDownToDetails(prev.detailsEl, false);
+            }
+
+            function jumpToHistoryIndex(historyIndex) {
+                if (historyIndex < 0 || historyIndex >= drillDownHistory.length) return;
+                drillDownHistory = drillDownHistory.slice(0, historyIndex + 1);
+                const target = drillDownHistory[drillDownHistory.length - 1];
+                drillDownToDetails(target.detailsEl, false);
+            }
+
+            // Khi bấm vào 1 trong 17 thẻ danh mục trên màn hình Dashboard:
+            function openCategoryFromDashboard(summaryName) {
+                const targetSummary = Array.from(document.querySelectorAll('.sidebar summary')).find(
+                    s => s.textContent.trim().toLowerCase() === summaryName.toLowerCase() ||
+                         s.textContent.trim().toLowerCase().startsWith(summaryName.toLowerCase())
+                );
+                if (targetSummary && targetSummary.parentElement) {
+                    drillDownToDetails(targetSummary.parentElement, true);
+                }
+            }
+
+            // Khi bấm vào một Series cụ thể từ lưới thẻ:
+            function openSeriesFromDashboard(modelKey) {
+                const targetLink = Array.from(document.querySelectorAll('.sidebar li a')).find(a => {
+                    const onclickAttr = a.getAttribute('onclick') || '';
+                    return onclickAttr.includes(`'${modelKey}'`) && onclickAttr.includes(`'thongso'`);
+                });
+
+                if (targetLink) {
+                    allDetails.forEach(d => d.removeAttribute('open'));
+                    let curr = targetLink.parentElement;
+                    while (curr && curr.tagName !== 'BODY') {
+                        if (curr.tagName === 'DETAILS') curr.setAttribute('open', '');
+                        curr = curr.parentElement;
+                    }
+                    items.forEach(el => el.classList.remove('active-item'));
+                    targetLink.classList.add('active-item');
+                    document.body.classList.add('has-active');
+                    targetLink.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+
+                show_info(modelKey, 'thongso');
             }
 
             // =========================================================================
@@ -5686,6 +5938,9 @@
 
             // Khởi tạo sự kiện Tìm kiếm, Phím tắt bàn phím và Lăn chuột Zoom khi trang tải xong
             window.addEventListener('DOMContentLoaded', () => {
+                const catGrid = document.getElementById('dashboardCategoryGrid');
+                if (catGrid) initialRootGridHTML = catGrid.innerHTML;
+
                 buildSearchIndex();
 
                 const searchInput = document.getElementById('treeSearchInput');
@@ -6307,8 +6562,10 @@
             border-top: 1px solid #e2e8f0;
             min-height: 48px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 3px;
             transition: background-color 0.2s ease, color 0.2s ease;
         }
         .cat-title-bar h4 {
@@ -6320,11 +6577,91 @@
             letter-spacing: 0.3px;
             line-height: 1.35;
         }
+        .cat-subtitle {
+            font-size: 11.5px;
+            color: #64748b;
+            font-weight: 500;
+        }
         .cat-card:hover .cat-title-bar {
             background: #10b981;
         }
         .cat-card:hover .cat-title-bar h4 {
             color: #ffffff;
+        }
+        .cat-card:hover .cat-subtitle {
+            color: #ecfdf5;
+        }
+
+        /* Thanh điều hướng lùi / Breadcrumb trên Dashboard */
+        .dashboard-nav-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #ffffff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+            flex-wrap: wrap;
+        }
+        .dash-back-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 13px;
+            font-family: inherit;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #1e293b;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .dash-back-btn:hover {
+            background: #e2e8f0;
+            color: #059669;
+            border-color: #10b981;
+        }
+        .mini-back-btn {
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #ecfdf5;
+            color: #059669;
+            border-color: #6ee7b7;
+        }
+        .mini-back-btn:hover {
+            background: #10b981;
+            color: #ffffff;
+            border-color: #059669;
+        }
+        .dash-breadcrumb {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            font-size: 13px;
+        }
+        .dash-crumb-link {
+            cursor: pointer;
+            padding: 3px 8px;
+            border-radius: 6px;
+            color: #059669;
+            font-weight: 600;
+            background: #ecfdf5;
+            transition: background 0.15s;
+        }
+        .dash-crumb-link:hover {
+            background: #d1fae5;
+        }
+        .dash-crumb-sep {
+            color: #94a3b8;
+            font-weight: bold;
+        }
+        .dash-crumb-current {
+            font-weight: 700;
+            color: #0f172a;
+            padding: 3px 6px;
         }
 
         /* =========================================================================
