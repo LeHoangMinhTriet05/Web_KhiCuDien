@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Cho phép Googlebot và Bingbot quét toàn bộ trang và hình ảnh thiết bị
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /

@@ -1,0 +1,6 @@
+# Bỏ qua các file sao lưu, file SQL nặng và script crawl khi đẩy lên GitHub / Vercel / Netlify
+*.bak*
+*.sql
+crawl/
+.DS_Store
+Thumbs.db
